@@ -40,8 +40,24 @@ def patch_env(
 
     Returns a :class:`PatchResult` describing what changed together with
     the rendered .env lines so callers can write the result to disk.
+
+    Args:
+        source: The current environment variables as a dict.
+        updates: Keys and values to add or update.
+        remove_keys: Keys to remove from the resulting env file.
+
+    Raises:
+        ValueError: If a key in *remove_keys* also appears in *updates*,
+            which would be an ambiguous operation.
     """
     remove_keys = remove_keys or []
+
+    conflicting = [k for k in remove_keys if k in updates]
+    if conflicting:
+        raise ValueError(
+            f"Keys appear in both updates and remove_keys: {conflicting}"
+        )
+
     result = PatchResult()
 
     merged: Dict[str, str] = {}
