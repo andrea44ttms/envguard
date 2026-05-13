@@ -24,6 +24,22 @@ def _build_demo_schema() -> EnvSchema:
     return s
 
 
+def _apply_redaction(data: dict, redact: bool) -> dict:
+    """Return a copy of data with sensitive values masked if redact is True."""
+    if not redact:
+        return data
+    return {k: ("***" if is_sensitive(k) else v) for k, v in data.items()}
+
+
+def _print_table(data: dict) -> None:
+    """Print env data as a formatted table to stdout."""
+    print(f"{'Key':<25} {'Type':<10} Value")
+    print("-" * 55)
+    for key, value in data.items():
+        type_name = type(value).__name__
+        print(f"{key:<25} {type_name:<10} {value}")
+
+
 def cmd_format(
     env_path: str,
     schema: Optional[EnvSchema] = None,
@@ -47,21 +63,12 @@ def cmd_format(
 
     formatted = format_env(raw, s, result)
     data = formatted.to_dict()
-
-    if redact:
-        data = {
-            k: ("***" if is_sensitive(k) else v)
-            for k, v in data.items()
-        }
+    data = _apply_redaction(data, redact)
 
     if output_json:
         print(json.dumps(data, indent=2, default=str))
     else:
-        print(f"{'Key':<25} {'Type':<10} Value")
-        print("-" * 55)
-        for key, value in data.items():
-            type_name = type(value).__name__
-            print(f"{key:<25} {type_name:<10} {value}")
+        _print_table(data)
 
     if not result.is_valid:
         print(f"\n[envguard] Validation failed: {result.error_count} error(s).", file=sys.stderr)
