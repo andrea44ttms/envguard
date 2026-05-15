@@ -37,7 +37,25 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     return p
 
 
+def _write_output(result: object, fmt: str) -> None:
+    """Write *result* to stdout in the requested *fmt*.
+
+    Supported formats:
+    - ``json``   – JSON object with ``matched`` and ``excluded`` keys.
+    - ``dotenv`` – KEY=value lines for matched keys only.
+    - ``text``   – Human-readable string representation of the result.
+    """
+    if fmt == "json":
+        print(json.dumps({"matched": result.matched, "excluded": result.excluded}))
+    elif fmt == "dotenv":
+        for k, v in result.matched.items():
+            print(f"{k}={v}")
+    else:
+        print(result)
+
+
 def cmd_filter(args: argparse.Namespace) -> int:
+    """Execute the filter sub-command and return an exit code."""
     try:
         env = load_env_file(args.env_file)
     except EnvFileNotFoundError as exc:
@@ -53,13 +71,7 @@ def cmd_filter(args: argparse.Namespace) -> int:
         filter_name=args.name,
     )
 
-    if args.format == "json":
-        print(json.dumps({"matched": result.matched, "excluded": result.excluded}))
-    elif args.format == "dotenv":
-        for k, v in result.matched.items():
-            print(f"{k}={v}")
-    else:
-        print(result)
+    _write_output(result, args.format)
 
     return 0
 
